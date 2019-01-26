@@ -2,7 +2,7 @@ from selenium import webdriver
 
 
 def main():
-    # Open up a Chrome browser and navigate to web page
+    # Open up a Chrome browser and navigate to user's ratings web page
     username = input("Enter username: ")
     browser = webdriver.Chrome('C:\\Users\\Allan\\Desktop\\Python\\chromedriver.exe')
     browser.get('https://letterboxd.com/' + username + '/films/ratings')
@@ -18,13 +18,15 @@ def main():
         title = film.find_element_by_xpath('.//img').get_property('alt')
         print(title)
 
-        rating = film.find_element_by_xpath('.//meta[@itemProp="ratingValue"]').get_property('content')
+        rating = film.find_element_by_xpath('.//meta[@itemprop="ratingValue"]').get_property('content')
         print(rating)
 
-        print()
+        letterboxd_uri = 'https://letterboxd.com' + \
+                         film.find_element_by_xpath('.//div[1]').get_attribute('data-target-link')
+        print(letterboxd_uri)
 
-
-
+    # Clean up, close browser once task is completed
+    browser.close()
 
 
     #print(type(ratings))
