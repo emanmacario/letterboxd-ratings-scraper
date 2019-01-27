@@ -1,11 +1,22 @@
 import csv
-from selenium import webdriver
 from math import ceil
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import TimeoutException
 
 BASE_URL = 'https://letterboxd.com/'
 RATINGS_PATH = '/films/ratings/page/'
 DRIVER_PATH = 'C:\\Users\\Allan\\Desktop\\Python\\chromedriver.exe'
 RATINGS_PER_PAGE = 18
+
+
+# TODO: Experiment with PhantomJS or Headless Chrome instead of normal Chrome
+# TODO: Try hovering over element to extract movie years
+# TODO: Write scraped output to CSV file
+
 
 def main():
     # Open up a Chrome browser and navigate to user's profile web page
@@ -44,6 +55,7 @@ def calc_total_pages(browser, username):
     print(total_ratings)
 
     total_pages = ceil(total_ratings / RATINGS_PER_PAGE)
+
     return total_pages
 
 
@@ -58,6 +70,30 @@ def scrape_page_ratings(browser):
     print("Total elements:", len(film_ratings))
 
     for film in film_ratings:
+        # DEBUGGING HOVERING
+
+        try:
+            # Locate the mouse-over element
+            hover = ActionChains(browser).move_to_element(film)
+            hover.perform()
+
+            # Get the dynamic element
+            element = WebDriverWait(browser, 10).until(
+                expected_conditions.presence_of_element_located((By.CLASS_NAME, "twipsy-inner"))
+            )
+            print("ELEMENT FOUND!")
+            print(element.text)
+        except TimeoutException:
+            print("Error, loading dynamic element took too much time!")
+
+
+        # Click the element
+        # film.click()
+
+        # Locate the new tag
+
+
+
         # Parse rating and title in scope of child elements
         title = film.find_element_by_xpath('.//img').get_property('alt')
         print("TITLE:", title)
@@ -70,7 +106,9 @@ def scrape_page_ratings(browser):
                                         .get_attribute('data-target-link')\
                                         .lstrip('/')
         print("URI:", letterboxd_uri)
-        print()
+
+        year = film.find_element_by_xpath('.//span[@class="frame-title"]').text
+        print("YEAR:", year)
 
 
 if __name__ == '__main__':
