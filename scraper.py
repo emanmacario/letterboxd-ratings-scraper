@@ -1,4 +1,5 @@
 import csv
+import re
 from math import ceil
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -9,7 +10,7 @@ from selenium.common.exceptions import TimeoutException
 
 BASE_URL = 'https://letterboxd.com/'
 RATINGS_PATH = '/films/ratings/page/'
-DRIVER_PATH = 'C:\\Users\\Allan\\Desktop\\Python\\chromedriver.exe'
+DRIVER_PATH = r'C:\Users\Allan\Desktop\Python\chromedriver.exe'
 RATINGS_PER_PAGE = 18
 
 
@@ -70,33 +71,33 @@ def scrape_page_ratings(browser):
     print("Total elements:", len(film_ratings))
 
     for film in film_ratings:
-        # DEBUGGING HOVERING
-
         try:
             # Locate the mouse-over element
             hover = ActionChains(browser).move_to_element(film)
             hover.perform()
 
             # Get the dynamic element
-            element = WebDriverWait(browser, 10).until(
+            element = WebDriverWait(browser, 30).until(
                 expected_conditions.presence_of_element_located((By.CLASS_NAME, "twipsy-inner"))
             )
-            print("ELEMENT FOUND!")
-            print(element.text)
+
+            # Regular expression for film title and year
+            pattern = re.compile(r"(?P<title>.*) \((?P<year>\d{4})\)")
+
+            # Try to find a match
+            match = pattern.match(element.text)
+            if match:
+                title = match.group('title')
+                year = match.group('year')
+                print(title, year)
+
         except TimeoutException:
             print("Error, loading dynamic element took too much time!")
 
 
-        # Click the element
-        # film.click()
-
-        # Locate the new tag
-
-
-
         # Parse rating and title in scope of child elements
-        title = film.find_element_by_xpath('.//img').get_property('alt')
-        print("TITLE:", title)
+        # title = film.find_element_by_xpath('.//img').get_property('alt')
+        # print("TITLE:", title)
 
         rating = film.find_element_by_xpath('.//meta[@itemprop="ratingValue"]')\
                      .get_property('content')
@@ -107,8 +108,8 @@ def scrape_page_ratings(browser):
                                         .lstrip('/')
         print("URI:", letterboxd_uri)
 
-        year = film.find_element_by_xpath('.//span[@class="frame-title"]').text
-        print("YEAR:", year)
+        #year = film.find_element_by_xpath('.//span[@class="frame-title"]').text
+        #print("YEAR:", year)
 
 
 if __name__ == '__main__':
