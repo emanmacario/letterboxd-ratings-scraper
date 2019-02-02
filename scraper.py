@@ -35,6 +35,7 @@ def main():
     username = input("Enter username: ")
 
     validate_user_existence(username)
+
     browser = initialise_browser()
 
     # Calculate total number of pages to be scraped
@@ -67,10 +68,12 @@ def validate_user_existence(username):
             urllib.request.urlopen(BASE_URL + username)
         except urllib.error.HTTPError as e:
             # Return code error (e.g. 404, 501, ...)
-            print('HTTPError: {}'.format(e.code))
+            print('HTTPError: {} {}'.format(e.code, e.reason))
+            sys.exit(1)
         except urllib.error.URLError as e:
             # Not an HTTP-specific error (e.g. connection refused)
             print('URLError: {}'.format(e.reason))
+            sys.exit(1)
         else:
             # 200
             print('User has been found')
@@ -97,21 +100,27 @@ def calc_total_pages(browser, username):
 
 
 def scrape_all_ratings(browser, username, total_pages):
-    for page in range(1, total_pages + 1):
-        browser.get(BASE_URL + username + RATINGS_PATH + str(page))
-        scrape_page_ratings(browser)
+    with open(username + '-ratings.csv', 'w', newline='') as output_csv:
+        writer = csv.writer(output_csv)
+        writer.writerow(['Name', 'Year', 'URI', 'Rating'])
+
+        for page in range(1, total_pages + 1):
+            browser.get(BASE_URL + username + RATINGS_PATH + str(page))
+            scrape_page_ratings(browser, writer)
 
 
-def scrape_page_ratings(browser):
+def scrape_page_ratings(browser, writer):
     film_ratings = browser.find_elements_by_class_name('poster-container')
     print("Total elements:", len(film_ratings))
 
     # Regular expression for film title and year
     pattern = re.compile(r"(?P<title>.*) \((?P<year>\d{4})\)")
 
+    # For each film, append data to csv
     for film in film_ratings:
         sys.stdout.flush()
         print("Next film...")
+        row = []
         try:
             print("Trying to hover...")
             # Locate the mouse-over element
@@ -130,27 +139,24 @@ def scrape_page_ratings(browser):
             if match is not None:
                 title = match.group('title')
                 year = match.group('year')
+                row.append(title)
+                row.append(year)
                 print(title, year)
 
         except TimeoutException:
             print("Error, loading dynamic element took too much time!")
 
-        # Parse rating and title in scope of child elements
-        # title = film.find_element_by_xpath('.//img').get_property('alt')
-        # print("TITLE:", title)
+        uri = BASE_URL + film.find_element_by_xpath('.//div[1]')\
+                             .get_attribute('data-target-link')\
+                             .lstrip('/')
+        print("URI:", uri)
+        row.append(uri)
 
-        # rating = film.find_element_by_xpath('.//meta[@itemprop="ratingValue"]')
-        #             .get_property('content')
         rating = film.get_attribute('data-owner-rating')
         print("RATING:", rating)
+        row.append(rating)
 
-        letterboxd_uri = BASE_URL + film.find_element_by_xpath('.//div[1]')\
-                                        .get_attribute('data-target-link')\
-                                        .lstrip('/')
-        print("URI:", letterboxd_uri)
-
-        #year = film.find_element_by_xpath('.//span[@class="frame-title"]').text
-        #print("YEAR:", year)
+        writer.writerow(row)
 
 
 if __name__ == '__main__':
